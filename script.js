@@ -50,28 +50,7 @@ const exerciseData = {
       id: "p4q4",
       prompt: "Che cosa hanno fatto in centro?",
       answer: "Hanno fatto un giro e hanno bevuto un caffè.",
-      acceptedAnswers: [
-        "hanno fatto un giro e hanno bevuto un caffè",
-        "hanno fatto un giro e bevuto un caffè",
-        "hanno fatto un giro e poi hanno bevuto un caffè",
-        "hanno fatto un giro e poi bevuto un caffè",
-        "in centro hanno fatto un giro e hanno bevuto un caffè",
-        "in centro hanno fatto un giro e bevuto un caffè",
-        "in centro hanno fatto un giro e poi hanno bevuto un caffè",
-        "in centro hanno fatto un giro e poi bevuto un caffè",
-        "hanno bevuto un caffè e hanno fatto un giro",
-        "hanno bevuto un caffè e fatto un giro",
-        "hanno fatto un giro e hanno bevuto un caffè in centro",
-        "hanno bevuto un caffè e hanno fatto un giro in centro",
-        "marta e un'amica hanno fatto un giro e hanno bevuto un caffè",
-        "marta e una amica hanno fatto un giro e hanno bevuto un caffè",
-        "marta e la sua amica hanno fatto un giro e hanno bevuto un caffè",
-        "marta e un'amica hanno bevuto un caffè e hanno fatto un giro",
-        "marta e una amica hanno bevuto un caffè e hanno fatto un giro",
-        "marta e la sua amica hanno bevuto un caffè e hanno fatto un giro",
-        "loro hanno fatto un giro e hanno bevuto un caffè",
-        "loro hanno bevuto un caffè e hanno fatto un giro",
-      ],
+      matcher: "centerActions",
       explanation: "回答需要包含两个核心信息：fare un giro 和 bere un caffè。",
     },
     {
@@ -127,7 +106,21 @@ function getStudentAnswer(item) {
   return radio ? radio.value : textInput ? textInput.value : "";
 }
 
+function hasCorrectCenterActions(value) {
+  const normalized = normalizeAnswer(value);
+  const hasWrongAuxiliary = /\b(?:ha|sono|è)\s+(?:fatto un giro|bevuto un caffè)(?=\s|$)/u.test(normalized);
+  const negatesAnAction = /\bnon\s+(?:hanno\s+)?(?:fatto un giro|bevuto un caffè)(?=\s|$)/u.test(normalized);
+  if (hasWrongAuxiliary || negatesAnAction) return false;
+
+  const tourThenCoffee = /\bhanno fatto un giro(?=\s|$).*\b(?:hanno\s+)?bevuto un caffè(?=\s|$)/u.test(normalized);
+  const coffeeThenTour = /\bhanno bevuto un caffè(?=\s|$).*\b(?:hanno\s+)?fatto un giro(?=\s|$)/u.test(normalized);
+  return tourThenCoffee || coffeeThenTour;
+}
+
 function isCorrect(item, value) {
+  if (item.matcher === "centerActions") {
+    return hasCorrectCenterActions(value);
+  }
   if (item.acceptedAnswers) {
     const normalized = normalizeAnswer(value);
     return item.acceptedAnswers.some((answer) => normalizeAnswer(answer) === normalized);
@@ -285,6 +278,7 @@ document.getElementById("restart-button").addEventListener("click", restartExerc
 window.exerciseApp = {
   exerciseData,
   normalizeAnswer,
+  hasCorrectCenterActions,
   isCorrect,
   state,
   checkPart,
